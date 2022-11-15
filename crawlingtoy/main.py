@@ -4,8 +4,13 @@ import requests
 from bs4 import BeautifulSoup as bs
 import json
 import pprint
+from pydantic import BaseModel
 
+class Item(BaseModel):
 
+    cat_list : list = [{"name" : "건강식품", "param" : ["50000023"]}]
+    
+    
 
 app = FastAPI()
 
@@ -29,7 +34,6 @@ async def crawling(input):
         res_dict= {}
 
         for index, elements in enumerate(list_ele):
-            
             res_dict[index] = elements.text, elements.attrs['href']
         
         json_val = json.dumps(res_dict, ensure_ascii=False) # ensure_ascii=False 붙여넣기
@@ -41,8 +45,9 @@ async def crawling(input):
     except Exception as e :
         print(e)
         
-@app.get("/items/select/{select_cat}")
-async def selectC(select_cat):
+        
+@app.post("/items/select/{select_cat}")
+async def selectC(select_cat: str, parameter: Item):
 
     ####################################
     client_id = "SOmSP6p7sz6n7sSYB2GZ"
@@ -50,32 +55,20 @@ async def selectC(select_cat):
     ####################################
 
     url = "https://openapi.naver.com/v1/datalab/shopping/categories"
+    
+    print(parameter)
 
     payload = {"startDate": "2022-10-01",
             "endDate": "2022-11-13",
             "timeUnit": "month",
-            "category": [
-                {"name": "식품",
-                    "param": ["50000006"]},
-                {"name": "건강식품",
-                    "param": ["50000023"]}],
-            "device": "pc",
-            #"ages": [],
-            #"gender": 
+            "category": parameter.cat_list,
+            "device": "pc"
                 }
 
     headers = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret, "Content-Type": "application/json"}
-    res = requests.post(url, data=json.dumps(payload), headers=headers)
-
-    print(res.status_code)
-    aaa = json.loads(res.text)
-
-    json_val2 = json.dumps(aaa, ensure_ascii=False)
-
-    pprint.pprint(json_val2)
-    #print(type(aaa))
+    res = requests.post(url, data=json.dumps(payload), headers=headers).json()
     
-    return json_val2
+    return res
     
 
 @app.get("/items/{item_id}")
