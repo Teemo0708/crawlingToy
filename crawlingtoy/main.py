@@ -1,9 +1,8 @@
 # -- coding: utf-8 --
 from fastapi import FastAPI
-import requests
+import requests, xmltodict, json
+from pprint import pprint
 from bs4 import BeautifulSoup as bs
-import json
-import pprint
 from pydantic import BaseModel
 
 class Item(BaseModel):
@@ -70,6 +69,32 @@ async def selectC(select_cat: str, parameter: Item):
     
     return res
     
+@app.get("/items/daily/{select_item}")
+async def selectItem():
+    
+    ########################################
+    p_cert_key = "c18025a9-bc77-4084-8017-164977caffa9"
+    p_cert_id = "2955"
+    ########################################
+    
+    url = f"http://www.kamis.co.kr/service/price/xml.do?action=dailySalesList&p_cert_key={p_cert_key}&p_cert_id={p_cert_id}&p_returntype=json"
+    
+    content = requests.get(url).json()
+    
+    #list1, list2 = [], []
+    
+    dic = {}
+    for i in content["price"]:
+        
+        #list2.append(i["item_name"])
+        #list1.append(i["dpr1"])
+        
+        dic[i["item_name"]] = i["dpr1"]
+        
+    return dic
+    
+    
+
 
 @app.get("/items/{item_id}")
 async def read_item(item_id):
