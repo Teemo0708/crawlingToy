@@ -14,4 +14,4 @@ class ElasticPost(object):
             headers=headers,
             verify=False,
             json=json_data
-        ).status_code
+        ).status_code   
