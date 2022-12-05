@@ -1,18 +1,23 @@
 # -- coding: utf-8 --
 from fastapi import FastAPI
-import requests, xmltodict, json
+import requests, json
 from pprint import pprint
 from bs4 import BeautifulSoup as bs
 from pydantic import BaseModel
+from elastic import ElasticPost
+from collections import defaultdict
+
 
 class Item(BaseModel):
-
     cat_list : list = [{"name" : "건강식품", "param" : ["50000023"]}]
     
-    
+ID = "2955"  
+KEY = "c18025a9-bc77-4084-8017-164977caffa9"
+
+ELASTIC_HOST = "34.64.205.41"
+ELASTIC_PORT = 9200
 
 app = FastAPI()
-
 
 @app.get("/")
 async def root():
@@ -45,8 +50,8 @@ async def crawling(input):
         print(e)
         
         
-@app.post("/items/select/{select_cat}")
-async def selectC(select_cat: str, parameter: Item):
+@app.post("/items/select")
+async def selectC(parameter: Item):
 
     ####################################
     client_id = "SOmSP6p7sz6n7sSYB2GZ"
@@ -64,37 +69,33 @@ async def selectC(select_cat: str, parameter: Item):
             "device": "pc"
                 }
 
-    headers = {"X-Naver-Client-Id": client_id, "X-Naver-Client-Secret": client_secret, "Content-Type": "application/json"}
-    res = requests.post(url, data=json.dumps(payload), headers=headers).json()
+    headers = {"X-Naver-Client-Id": ID, "X-Naver-Client-Secret": SECRET, "Content-Type": "application/json"}
+    res = requests.post(
+        url, 
+        data=json.dumps(payload), 
+        headers=headers
+        ).json()
     
     return res
     
-@app.get("/items/daily/{select_item}")
+@app.get("/items/daily")
 async def selectItem():
     
-    ########################################
-    p_cert_key = "c18025a9-bc77-4084-8017-164977caffa9"
-    p_cert_id = "2955"
-    ########################################
+    index_name = "simple_index"
     
-    url = f"http://www.kamis.co.kr/service/price/xml.do?action=dailySalesList&p_cert_key={p_cert_key}&p_cert_id={p_cert_id}&p_returntype=json"
+    elastic_object = ElasticPost(ELASTIC_HOST ,ELASTIC_PORT, index_name)
     
-    content = requests.get(url).json()
+    url = f"http://www.kamis.co.kr/service/price/xml.do?action=dailySalesList&p_cert_key={KEY}&p_cert_id={ID}&p_returntype=json"
     
-    #list1, list2 = [], []
+    query_res = requests.get(url).json()
     
-    dic = {}
-    for i in content["price"]:
+    elastic_res_code = defaultdict(int)
+    
+    for items in query_res["price"]:
+        elastic_res_code[elastic_object.sendPost(items)] += 1
         
-        #list2.append(i["item_name"])
-        #list1.append(i["dpr1"])
-        
-        dic[i["item_name"]] = i["dpr1"]
-        
-    return dic
+    return elastic_res_code
     
-    
-
 
 @app.get("/items/{item_id}")
 async def read_item(item_id):

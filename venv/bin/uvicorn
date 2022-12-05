@@ -1,4 +1,4 @@
-#!/Users/ymh/crawlingToy/venv/bin/python3.11
+#!/Users/jaeho/Work/crawlingToy/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
